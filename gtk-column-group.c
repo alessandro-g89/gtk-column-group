@@ -28,21 +28,47 @@ FM_DEFINE_MODULE(gtk_folder_col, group)
 GType get_type() { return G_TYPE_STRING; };
 
 void get_value(FmFileInfo *fi, GValue *value){
-	g_value_set_string( value, getgrgid( fm_file_info_get_gid( fi ) ) -> gr_name );
+	int gid = fm_file_info_get_gid(fi);
+	struct group *group_struct = getgrgid(gid);
+	if(group_struct != NULL){
+		g_value_set_string( value, group_struct->gr_name );
+	} else {
+		GValue g_gid = G_VALUE_INIT;
+		g_value_init (&g_gid, G_TYPE_INT);
+		g_value_set_int( &g_gid, gid );
+		g_value_transform( &g_gid, value ); 
+	}
 };
 
 gint sort(FmFileInfo *fi1, FmFileInfo *fi2){
 	int result;
 
-	struct group *group1 = getgrgid( fm_file_info_get_gid( fi1 ) );
-	char* gid_string_1 = malloc( strlen( group1 -> gr_name ) + 1 );
-	strcpy(gid_string_1, group1 -> gr_name);
+	int gid1 = fm_file_info_get_gid( fi1 );
+	struct group *group1 = getgrgid( gid1 );
+	char* gid_string_1;
+	if(group1 != NULL){
+		gid_string_1 = malloc( strlen( group1 -> gr_name ) + 1 );
+		strcpy(gid_string_1, group1->gr_name);
+	} else {
+		gid_string_1 = malloc( sizeof(int) * 8 + 1 );
+		sprintf(gid_string_1, "%d", gid1);
+	}
 
-	struct group *group2 = getgrgid( fm_file_info_get_gid( fi2 ) );
-	char* gid_string_2 = group2 -> gr_name;
-
+	int gid2 = fm_file_info_get_gid( fi2 );
+	struct group *group2 = getgrgid( gid2 );
+	char* gid_string_2;
+	if(group2 != NULL){
+		gid_string_2 = malloc( strlen( group2 -> gr_name ) + 1 );
+		strcpy(gid_string_2, group2->gr_name);
+	} else {
+		gid_string_2 = malloc( sizeof(int) * 8 + 1 );
+		sprintf(gid_string_2, "%d", gid2);
+	}
+	
 	result = strcmp( gid_string_1, gid_string_2 );
 	free( gid_string_1 );
+	free( gid_string_2 );
+	
 	return result;
 }
 
